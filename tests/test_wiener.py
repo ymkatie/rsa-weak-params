@@ -1,5 +1,6 @@
 """Run with: python -m unittest discover -s tests -v."""
 import unittest
+from unittest.mock import patch
 
 from attacks.wiener import wiener
 from keygen.weak_wiener import weak_wiener
@@ -42,6 +43,16 @@ class WienerTests(unittest.TestCase):
         for bits, d_bits in [(8, 2), (65, 8), (64, 1), (64, 63)]:
             with self.subTest(bits=bits, d_bits=d_bits), self.assertRaises(ValueError):
                 weak_wiener(bits, d_bits)
+
+    def test_tiny_exponent_retries_with_fresh_primes(self):
+        # d_bits=2 permits only d=3. The first prime pair has phi divisible
+        # by 3, so resampling d alone can never produce a usable key.
+        with patch("keygen.weak_wiener.getPrime", side_effect=[193, 197, 227, 233]) as primes:
+            with patch("keygen.weak_wiener.secrets.randbits", return_value=0):
+                N, e, p, q, d = weak_wiener(16, 2)
+        self.assertEqual(primes.call_count, 4)
+        self.assertEqual((N, p, q, d), (227 * 233, 227, 233, 3))
+        self.assertEqual((e * d) % ((p - 1) * (q - 1)), 1)
 
 
 if __name__ == "__main__":
