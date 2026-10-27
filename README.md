@@ -41,16 +41,59 @@ Mac: it is x86-only and runs slowly under emulation.
 
 ## Run it
 
+On Windows PowerShell, activate the local environment first:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+If script activation is disabled, replace `python` below with
+`.\.venv\Scripts\python.exe`.
+
 Run everything from the repo root:
 
 ```bash
 python attacks/fermat.py        # demo: factor one 2048-bit key
 python -m bench.run_fermat      # sweep the prime gap, writes results/fermat.csv (~1.5 min)
 python -m bench.plot_fermat     # writes results/fermat.png
+python attacks/wiener.py        # demo: recover d and factor a 2048-bit key
+python -m bench.run_wiener      # sweep d size, writes results/wiener.csv
+python -m bench.plot_wiener     # writes results/wiener.png
 python run_all.py               # all of the above
 ```
 
-## Adding a new attack (the pattern for Weeks 2 and 3)
+## Week 2: Wiener attack
+
+Wiener's attack targets a small private exponent `d`. The generator chooses
+an exact-bit-length `d` and balanced, independent primes, then computes
+`e = inverse(d, (p-1)*(q-1))`. Unlike the Fermat experiment, `e` is not fixed
+at 65537. These keys are deliberately insecure and for experiments only.
+
+The attack examines continued-fraction convergents `k/d` of public `e/N`.
+For each candidate, it checks whether `k` divides `e*d - 1`, reconstructs
+`phi = (e*d - 1)/k`, and solves `x^2 - (N-phi+1)*x + N = 0` using an exact
+integer square root. It accepts only nontrivial factors whose product is `N`.
+`wiener(N, e)` returns `(p, q, d, iterations)`; the first three entries are
+`None` if no candidate works. Iterations count convergents, including `0/1`.
+
+For balanced primes `p < q < 2*p`, `d < N^(1/4)/3` is a sufficient bound.
+The default sweep uses 2048-bit moduli and five keys per exponent size,
+with dense sampling around 510-514 bits. Success can extend beyond the
+sufficient bound; failure does not establish security against other attacks.
+The CSV records the exact bound check `(3*d)^4 < N`, measured time, and
+convergent count, without recording recovered secrets. Key generation and
+decryption verification are outside the timed region.
+
+Reference: M. J. Wiener, [Cryptanalysis of Short RSA Secret Exponents
+(1990)](https://doi.org/10.1109/18.54902).
+
+Run the automated checks (including a 2048-bit recovery):
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+## Adding a new attack (the pattern for Week 3)
 
 1. `keygen/weak_<name>.py`: generate a 2048-bit key with the flaw controlled by one parameter.
 2. `attacks/<name>.py`: the attack. It takes public values only.
