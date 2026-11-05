@@ -12,9 +12,9 @@ load("attacks/coppersmith.sage")
 load("attacks/coppersmith_lattice.sage")
 
 BITS = 2048
-UNKNOWN_BITS = [420, 440, 460, 480, 500]
-TRIALS = 5
-LATTICE_PARAMETERS = [(3, 3), (4, 4), (6, 6)]
+UNKNOWN_BITS = [460, 465, 470, 475, 480]
+TRIALS = 10
+LATTICE_PARAMETERS = [(6, 6), (7, 7), (8, 8)]
 BETA = 0.49
 EPSILON = 0.03
 
@@ -32,7 +32,7 @@ def baseline(N, p_high, unknown_bits):
 
 
 def main():
-    output = Path("results/coppersmith_comparison_2048_boundary.csv")
+    output = Path("results/coppersmith_comparison_2048_refined.csv")
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", newline="") as fh:
         writer = csv.writer(fh)
@@ -54,6 +54,7 @@ def main():
                 elapsed = perf_counter()-start
                 writer.writerow([BITS,k,trial,"sage", "", "",int(success),
                                  elapsed,"","",error])
+                print(f"k={k} trial={trial} sage success={success} time={elapsed:.3f}s", flush=True)
                 for m,t in LATTICE_PARAMETERS:
                     start = perf_counter()
                     metrics = {}
@@ -69,7 +70,7 @@ def main():
                     writer.writerow([BITS,k,trial,"custom_lll",m,t,int(success),
                                      elapsed,metrics.get("lll_seconds",""),
                                      metrics.get("dimension",""),error])
-                    print(f"k={k} trial={trial} m={m} t={t} success={success} time={elapsed:.3f}s")
+                    print(f"k={k} trial={trial} m={m} t={t} success={success} time={elapsed:.3f}s", flush=True)
                 fh.flush()
     print("Saved:",output)
 
