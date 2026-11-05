@@ -12,8 +12,8 @@ load("attacks/coppersmith.sage")
 load("attacks/coppersmith_lattice.sage")
 
 BITS = 2048
-UNKNOWN_BITS = [300, 350, 400]
-TRIALS = 3
+UNKNOWN_BITS = [420, 440, 460, 480, 500]
+TRIALS = 5
 LATTICE_PARAMETERS = [(3, 3), (4, 4), (6, 6)]
 BETA = 0.49
 EPSILON = 0.03
@@ -32,7 +32,7 @@ def baseline(N, p_high, unknown_bits):
 
 
 def main():
-    output = Path("results/coppersmith_comparison_2048.csv")
+    output = Path("results/coppersmith_comparison_2048_boundary.csv")
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", newline="") as fh:
         writer = csv.writer(fh)
