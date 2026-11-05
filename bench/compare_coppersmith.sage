@@ -11,10 +11,10 @@ import csv
 load("attacks/coppersmith.sage")
 load("attacks/coppersmith_lattice.sage")
 
-BITS = 512
-UNKNOWN_BITS = [40, 60, 80, 100]
+BITS = 2048
+UNKNOWN_BITS = [300, 350, 400]
 TRIALS = 3
-LATTICE_PARAMETERS = [(2, 2), (3, 3), (4, 4)]
+LATTICE_PARAMETERS = [(3, 3), (4, 4), (6, 6)]
 BETA = 0.49
 EPSILON = 0.03
 
@@ -32,7 +32,7 @@ def baseline(N, p_high, unknown_bits):
 
 
 def main():
-    output = Path("results/coppersmith_comparison.csv")
+    output = Path("results/coppersmith_comparison_2048.csv")
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", newline="") as fh:
         writer = csv.writer(fh)
