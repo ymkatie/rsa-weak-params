@@ -1,122 +1,102 @@
-# RSA weak-parameter attacks at real key sizes
+# RSA Weak Parameters and Implementation Flaw Attacks
 
-SC4010 project, and the base for the FYP. Each attack is run against genuine
-2048-bit RSA keys that contain one deliberate flaw. The flaw is then swept to
-find where the attack stops working.
+Research project benchmarking factorisation and key-recovery attacks on **synthetic, deliberately vulnerable RSA keys** at real-world modulus sizes. The project compares attack success, runtime, algorithmic work, and how weak parameters scale with the modulus.
 
-```
-keygen/    weak key generators (one per flaw)
-attacks/   the attacks (they only see the public key)
-bench/     benchmark harness, one runner and one plot script per attack
-results/   CSV + PNG output
-report/    report drafts
-verify.py  proves a recovered key really decrypts
-run_all.py reproduces every result
-```
+**Project roles:** Fermat and Coppersmith are the focus of one workstream; Wiener is a separate collaborator workstream. All three remain in this shared repository.
 
-## Setup (macOS, Apple Silicon)
+> **Scope:** The experiments do **not** demonstrate that normally generated 2048-, 3072-, or 4096-bit RSA keys are insecure. Success depends on a deliberately constructed weakness or leaked secret information.
 
-```bash
-cd rsa-weak-params
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-```
+## Repository map
 
-If `gmpy2` fails to build, run `brew install gmp mpfr libmpc` and try again,
-or use conda: `conda install -c conda-forge gmpy2`.
+| Location | Purpose |
+| --- | --- |
+| `keygen/` | Deliberately weak RSA key generation |
+| `attacks/fermat.py` | Difference-of-squares factorisation of close primes |
+| `attacks/coppersmith.sage` | SageMath `small_roots()` baseline for known high bits of a prime |
+| `attacks/coppersmith_lattice.sage` | Explicit polynomial shifts, lattice construction, LLL, root verification |
+| `attacks/wiener.py` | Small-private-exponent recovery (collaborator workstream) |
+| `bench/` | Attack benchmarks and plotting scripts |
+| `tests/` | Correctness tests |
+| `results/` | Historical and scaling CSV/PNG results (see [results index](results/README.md)) |
+| `report/` | Methodology notes |
+| `verify.py` | Factor and reconstructed-key checks |
+| `run_all.py` | **Legacy** original Fermat/Wiener runs only; does not run all recent experiments |
 
-### SageMath (only needed from Week 3, Coppersmith)
+## Environment
 
-The easiest route on an M-series Mac is a separate conda environment:
+Run from the repository root. Python experiments use:
 
 ```bash
-conda create -n sage -c conda-forge sage python=3.11
-conda activate sage
-sage -c "print(factor(2**64+1))"     # expect 274177 * 67280421310721
+python3 -m pip install -r requirements.txt
 ```
 
-If conda can't solve the environment, install the prebuilt macOS app from
-github.com/3-manifolds/Sage_macOS instead. Avoid the Docker image on an M-series
-Mac: it is x86-only and runs slowly under emulation.
-
-## Run it
-
-On Windows PowerShell, activate the local environment first:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-If script activation is disabled, replace `python` below with
-`.\.venv\Scripts\python.exe`.
-
-Run everything from the repo root:
+Coppersmith additionally requires a working **SageMath** installation:
 
 ```bash
-python attacks/fermat.py        # demo: factor one 2048-bit key
-python -m bench.run_fermat      # sweep the prime gap, writes results/fermat.csv (~1.5 min)
-python -m bench.plot_fermat     # writes results/fermat.png
-python attacks/wiener.py        # demo: recover d and factor a 2048-bit key
-python -m bench.run_wiener      # sweep d size, writes results/wiener.csv
-python -m bench.plot_wiener     # writes results/wiener.png
-python run_all.py               # all of the above
+sage --version
 ```
 
-## Week 2: Wiener attack
+Keep the benchmark environment and machine specifications in the FYP report. Key generation is excluded from measured attack time unless a specific script explicitly documents otherwise.
 
-Wiener's attack targets a small private exponent `d`. The generator chooses
-an exact-bit-length `d` and balanced, independent primes, then computes
-`e = inverse(d, (p-1)*(q-1))`. Unlike the Fermat experiment, `e` is not fixed
-at 65537. These keys are deliberately insecure and for experiments only.
-
-The attack examines continued-fraction convergents `k/d` of public `e/N`.
-For each candidate, it checks whether `k` divides `e*d - 1`, reconstructs
-`phi = (e*d - 1)/k`, and solves `x^2 - (N-phi+1)*x + N = 0` using an exact
-integer square root. It accepts only nontrivial factors whose product is `N`.
-`wiener(N, e)` returns `(p, q, d, iterations)`; the first three entries are
-`None` if no candidate works. Iterations count convergents, including `0/1`.
-
-For balanced primes `p < q < 2*p`, `d < N^(1/4)/3` is a sufficient bound.
-The default sweep uses 2048-bit moduli and five keys per exponent size,
-with dense sampling around 510-514 bits. Success can extend beyond the
-sufficient bound; failure does not establish security against other attacks.
-The CSV records the exact bound check `(3*d)^4 < N`, measured time, and
-convergent count, without recording recovered secrets. Key generation and
-decryption verification are outside the timed region.
-
-Reference: M. J. Wiener, [Cryptanalysis of Short RSA Secret Exponents
-(1990)](https://doi.org/10.1109/18.54902).
-
-Run the automated checks (including a 2048-bit recovery):
+## Run the Fermat experiments
 
 ```bash
-python -m unittest discover -s tests -v
+python3 -m unittest tests.test_fermat_refined -v
+python3 -m bench.run_fermat           # original 2048-bit sweep (overwrites results/fermat.csv)
+python3 -m bench.run_fermat_refined   # refined 2048-bit threshold (overwrites results/fermat_refined.csv)
+python3 -m bench.scale_fermat --trials 10  # 2048/3072/4096; writes results/fermat_scaling.csv
+python3 -m bench.plot_fermat_refined
+python3 -m bench.plot_rsa_scaling     # also plots Wiener if its scaling CSV exists
 ```
 
-## Adding a new attack (the pattern for Week 3)
+`bench.scale_fermat` defaults to a cap of **2^20** checks, while the older Fermat sweeps use **2^24**. Differences in empirical recovery boundaries are therefore expected. A cap-limited failure is **not** a proof of infeasibility.
 
-1. `keygen/weak_<name>.py`: generate a 2048-bit key with the flaw controlled by one parameter.
-2. `attacks/<name>.py`: the attack. It takes public values only.
-3. `bench/run_<name>.py`: define `make_key(param)`, `attack(key)` and `check(key, out)`,
-   then call `run_sweep(...)`. Only `attack` is timed. Keys starting with `_` in its
-   output (recovered secrets) are not written to the CSV.
-4. `bench/plot_<name>.py`, then add both to `run_all.py`.
+## Run the Coppersmith experiments
 
-## Week 1 results: Fermat
+```bash
+sage tests/test_coppersmith_lattice.sage
+sage bench/compare_coppersmith.sage  # refined 2048-bit comparison; overwrites its named CSV
+sage bench/scale_coppersmith.sage    # 3072-bit pilot; overwrites results/coppersmith_scaling_3072.csv
+```
 
-2048-bit N, e = 65537, 5 keys per gap, capped at 2^24 iterations (~3 s):
+The source modules' Sage `load()` calls can print their standalone 512-bit demos; these are **not** benchmark observations.
 
-| log2 abs(p−q) | Result |
-|---|---|
-| 100–512 | factored in 1 iteration, under 0.1 ms |
-| 514–524 | factored; median iterations grow from 3 to about 1.7M |
-| 526 | borderline (0–4 of 5 within the cap across runs) |
-| 528+ | exceeds the cap |
+Plot an existing data file without replacing earlier figures:
 
-- Measured iteration counts match the prediction (p−q)² / (8√N) closely.
-  Every extra bit of gap costs 4× more.
-- Extrapolating at the measured ~3.8M iterations/s, a gap of 540 bits would take
-  ~75 years and 560 bits ~10^14 years. Randomly generated 1024-bit primes differ
-  in roughly the top bit, so a normal key has a gap near 1023 bits and is safe.
-- Guideline for the report: reject any key where |p − q| < 2^(nbits/2 − 100).
-  FIPS 186-5 requires |p − q| > 2^(nbits/2 − 100). Check the exact clause before citing it.
+```bash
+python3 -m bench.plot_coppersmith --input results/coppersmith_comparison_2048_refined.csv --prefix coppersmith_2048_refined
+```
+
+The original Coppersmith plotting command still works with the default input `results/coppersmith_comparison.csv`:
+
+```bash
+python3 -m bench.plot_coppersmith
+```
+
+The attack model is **partial disclosure of the high bits of one RSA prime**. This is a leakage/implementation-flaw experiment, rather than evidence that all primes of a particular size are weak.
+
+## Wiener (collaborator)
+
+```bash
+python3 -m bench.run_wiener
+python3 -m bench.plot_wiener
+python3 -m bench.scale_wiener --trials 10
+```
+
+These are maintained separately from the Fermat/Coppersmith workstream.
+
+## Testing and result interpretation
+
+```bash
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+```
+
+SageMath tests are invoked separately as shown above. Some test and benchmark scripts create random keys, so empirical success rates vary across runs.
+
+- Always verify recovered factors satisfy `p*q == N`.
+- Compare attacks using the same modulus sizes **and appropriately scaled vulnerable parameters**, not only raw bit lengths.
+- Record trial counts, software versions, compute hardware and runtime limits.
+- Treat close-to-threshold success rates as empirical estimates, not exact theoretical bounds.
+- Benchmarks overwrite the **specified output CSV** when rerun. Commit or copy important results first.
+
+See [results index](results/README.md), [Coppersmith methodology](report/coppersmith_methodology.md), and [RSA scaling methodology](report/rsa_scaling_methodology.md).
