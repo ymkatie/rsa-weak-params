@@ -1,4 +1,5 @@
 """Plot custom LLL vs SageMath results: python3 -m bench.plot_coppersmith"""
+import argparse
 from pathlib import Path
 import csv
 from collections import defaultdict
@@ -7,9 +8,13 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    src = Path("results/coppersmith_comparison.csv")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input", default="results/coppersmith_comparison.csv", help="Input comparison CSV")
+    parser.add_argument("--prefix", default="coppersmith", help="Output file prefix (in results/)")
+    args = parser.parse_args()
+    src = Path(args.input)
     if not src.exists():
-        raise SystemExit("Run sage bench/compare_coppersmith.sage first")
+        raise SystemExit(f"Input CSV not found: {src}")
     groups = defaultdict(list)
     with src.open(newline="") as fh:
         for row in csv.DictReader(fh):
@@ -18,8 +23,8 @@ def main():
                 label += f" (m={row['m']}, t={row['t']})"
             groups[label, int(row["unknown_bits"])].append(row)
     for metric, filename, ylabel in [
-        ("success", "coppersmith_success.png", "Recovery success (%)"),
-        ("total_seconds", "coppersmith_runtime.png", "Mean elapsed time (s)"),
+        ("success", "success.png", "Recovery success (%)"),
+        ("total_seconds", "runtime.png", "Mean elapsed time (s)"),
     ]:
         fig, ax = plt.subplots(figsize=(9,5))
         for label in sorted({key[0] for key in groups}):
@@ -34,7 +39,7 @@ def main():
         ax.legend()
         ax.grid(alpha=0.3)
         fig.tight_layout()
-        dst = Path("results") / filename
+        dst = Path("results") / f"{args.prefix}_{filename}"
         fig.savefig(dst,dpi=160)
         plt.close(fig)
         print("Saved:",dst)
