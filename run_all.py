@@ -3,6 +3,7 @@
     python run_all.py
 """
 from bench import run_fermat, plot_fermat, run_wiener, plot_wiener
+from bench import run_shared_prime, plot_shared_prime
 from bench.bench import run_sweep
 
 if __name__ == "__main__":
@@ -14,4 +15,9 @@ if __name__ == "__main__":
     run_sweep("wiener", "d_bits", run_wiener.D_BITS, run_wiener.make_key,
               run_wiener.attack, run_wiener.check, trials=run_wiener.TRIALS)
     plot_wiener.main()
+    print("== Shared-prime GCD ==")
+    run_sweep("shared_prime", "shared_pairs", run_shared_prime.SHARED_PAIRS,
+              run_shared_prime.make_key, run_shared_prime.attack,
+              run_shared_prime.check, trials=run_shared_prime.TRIALS)
+    plot_shared_prime.main()
     # Week 3: Coppersmith (Sage) goes here

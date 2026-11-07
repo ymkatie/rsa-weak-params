@@ -47,6 +47,16 @@ python3 -m bench.run_fermat_refined   # refined 2048-bit threshold (overwrites r
 python3 -m bench.scale_fermat --trials 10  # 2048/3072/4096; writes results/fermat_scaling.csv
 python3 -m bench.plot_fermat_refined
 python3 -m bench.plot_rsa_scaling     # also plots Wiener if its scaling CSV exists
+python attacks/fermat.py        # demo: factor one 2048-bit key
+python -m bench.run_fermat      # sweep the prime gap, writes results/fermat.csv (~1.5 min)
+python -m bench.plot_fermat     # writes results/fermat.png
+python attacks/wiener.py        # demo: recover d and factor a 2048-bit key
+python -m bench.run_wiener      # sweep d size, writes results/wiener.csv
+python -m bench.plot_wiener     # writes results/wiener.png
+python attacks/shared_prime.py # demo: recover two keys sharing a prime
+python -m bench.run_shared_prime  # 2048-bit collections; includes no-reuse control
+python -m bench.plot_shared_prime # writes results/shared_prime.png
+python run_all.py               # all of the above
 ```
 
 `bench.scale_fermat` defaults to a cap of **2^20** checks, while the older Fermat sweeps use **2^24**. Differences in empirical recovery boundaries are therefore expected. A cap-limited failure is **not** a proof of infeasibility.
@@ -60,6 +70,49 @@ sage bench/scale_coppersmith.sage    # 3072-bit pilot; overwrites results/copper
 ```
 
 The source modules' Sage `load()` calls can print their standalone 512-bit demos; these are **not** benchmark observations.
+## Shared-prime GCD attack
+
+If `N1 = p*q` and `N2 = p*r` with distinct primes, `gcd(N1, N2) = p`.
+Both public moduli can then be factored and their private exponents rebuilt.
+This attack needs a collection of public keys containing prime reuse; a
+single independent key does not supply that information. See
+[Mining Your Ps and Qs (Heninger et al., 2012)](https://factorable.net/paper.html).
+
+`attacks.shared_prime.shared_prime_gcd(moduli)` returns `(factors, iterations)`.
+The factors list follows input order, with sorted `(p, q)` tuples or `None`.
+Duplicate moduli alone do not reveal a factor, but duplicates can still be
+recovered if a different modulus shares a prime. The implementation also
+handles keys whose two primes are shared with different neighbouring keys.
+Inputs are assumed to be two-prime RSA moduli; the attack validates integer
+inputs and proper factors, but does not certify primality.
+
+This is a pairwise baseline: for `K` keys it always performs `K*(K-1)/2`
+GCDs. It is not the product/remainder-tree batch GCD algorithm used for very
+large collections. `iterations` counts GCD calls, not Euclidean steps.
+
+The generator creates exact-size moduli with `e=65537`, globally unique primes
+except for deliberately shared ones, and shuffled key order. By default the
+primes have their top two bits set to ensure exact-size products without
+repeatedly rejecting partners for a fixed shared prime. The
+benchmark uses 16 keys per collection, 2048-bit moduli, three trials, and
+0, 1, 2, 4, or 8 disjoint shared-prime pairs. Exactly twice that many keys
+should be recovered. This sweep studies reuse prevalence, not a mathematical
+success threshold; the GCD count is fixed for a fixed collection size.
+
+Only the public-modulus attack is timed. Generation and decryption verification
+are outside the timer. CSV `success` means the entire collection matches ground
+truth, including correctly returning no factors in the zero-reuse control.
+`recovered_keys` records actual compromises. Factors and private keys are not
+written to CSV. The plot shows recovery counts and attack-only runtime.
+
+A smaller 2048-bit sweep (overwrites `results/shared_prime.csv`):
+
+```powershell
+python -m bench.run_shared_prime --bits 2048 --keys 4 --trials 1 --shared-pairs 0 1 2
+python -m bench.plot_shared_prime
+```
+
+## Adding a new attack (the pattern for Week 3)
 
 Plot an existing data file without replacing earlier figures:
 

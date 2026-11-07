@@ -1,0 +1,4 @@
+shared_pairs,trial,n_bits,success,time_s,iterations,recovered_keys,key_count,expected_recovered
+0,0,2048,True,0.0002639999729581177,6,0,4,0
+1,0,2048,True,0.0002641999744810164,6,2,4,2
+2,0,2048,True,0.00025729998014867306,6,4,4,4

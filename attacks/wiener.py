@@ -5,14 +5,22 @@ condition. Some keys beyond that bound also work; failure is not a proof
 that a key is secure. All arithmetic below is exact integer arithmetic.
 """
 from math import isqrt
+from operator import index
 
 
 def wiener(N, e):
     """Return (p, q, d, iterations), or (None, None, None, iterations).
 
     iterations counts all continued-fraction convergents examined, including
-    the initial 0/1. Inputs must be an odd modulus N > 3 and 1 < e < N.
+    the initial 0/1. Inputs must be integers, with odd N > 3 and 1 < e < N.
+    As in the RSA model, N is assumed to be a product of two distinct primes.
+    This routine verifies the factorization, but does not certify primality.
     """
+    if isinstance(N, bool) or isinstance(e, bool):
+        raise TypeError("N and e must be integers, not booleans")
+    # Accept integer-like types (e.g. GMP integers) without silently rounding
+    # floats or accepting decimal strings as public-key material.
+    N, e = index(N), index(e)
     if N <= 3 or N % 2 == 0 or not 1 < e < N:
         raise ValueError("Expected odd N > 3 and 1 < e < N")
 
@@ -30,10 +38,11 @@ def wiener(N, e):
         iterations += 1
 
         # ed - k*phi(N) = 1, so a correct k must divide ed - 1.
-        if k == 0 or (e * d - 1) % k:
+        # phi is even for two odd primes, so its inverse d must be odd.
+        if k == 0 or d % 2 == 0:
             continue
-        phi = (e * d - 1) // k
-        if not 0 < phi < N:
+        phi, remainder = divmod(e * d - 1, k)
+        if remainder or not 0 < phi < N or phi % 2:
             continue
         # p + q = N - phi(N) + 1; solve x^2 - (p+q)x + N = 0.
         s = N - phi + 1
