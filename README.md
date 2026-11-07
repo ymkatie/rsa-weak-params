@@ -70,6 +70,27 @@ sage bench/scale_coppersmith.sage    # 3072-bit pilot; overwrites results/copper
 ```
 
 The source modules' Sage `load()` calls can print their standalone 512-bit demos; these are **not** benchmark observations.
+
+### Coppersmith at 4096 bits
+
+A separate, non-destructive **4096-bit pilot** is available:
+
+```bash
+sage bench/scale_coppersmith_4096.sage
+```
+
+By default it runs one trial each with 850, 900 and 950 unknown low bits, using custom 12×12 and 16×16 lattice configurations. It prints progress before every attempt and writes `results/coppersmith_scaling_4096.csv`.
+
+For a SageMath baseline on identical keys (may be significantly slower):
+
+```bash
+sage bench/scale_coppersmith_4096.sage --trials 3 --with-sage --overwrite
+```
+
+The benchmark refuses to overwrite an existing 4096-bit CSV unless `--overwrite` is specified. To keep both pilots, pass a different path using `--output results/coppersmith_scaling_4096_baseline.csv`. Commit or back up the first CSV before rerunning.
+
+The known-high-bits attack becomes more challenging as unknown low bits approach the theoretical scale around `modulus_bits / 4` (about 1024 for a 4096-bit N), but the exact observed boundary depends on the lattice configuration and SageMath parameters. The defaults are a pilot, **not** a full boundary characterization.
+
 ## Shared-prime GCD attack
 
 If `N1 = p*q` and `N2 = p*r` with distinct primes, `gcd(N1, N2) = p`.
