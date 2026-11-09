@@ -159,6 +159,30 @@ python3 -m bench.scale_wiener --trials 10
 
 These are maintained separately from the Fermat/Coppersmith workstream.
 
+## FYP control experiments and comparative analysis
+
+Additional scripts compare vulnerable RSA keys with carefully defined negative
+controls, and summarize existing Fermat/Coppersmith benchmarks without changing
+your original CSVs:
+
+```bash
+python3 -m bench.control_fermat --trials 3
+sage bench/control_coppersmith.sage
+python3 -m bench.analyze_fyp
+```
+
+For custom Coppersmith lattice-size testing at 4096 bits:
+
+```bash
+sage bench/scale_coppersmith_4096.sage --unknown-bits 950 955 960 --trials 1 --lattice-sizes 6 7 8 10 --output results/coppersmith_lattice_sweep_4096.csv
+```
+
+**Read [the full experiment plan](report/fyp_next_experiments.md) first**.
+Controls and the lattice sweep are new and require local execution and validation.
+The Coppersmith decoy-prefix condition is **not** a substitute for a
+no-information RSA security experiment. Fresh output files are created by
+default and existing files are not overwritten unless explicitly requested.
+
 ## Testing and result interpretation
 
 ```bash
