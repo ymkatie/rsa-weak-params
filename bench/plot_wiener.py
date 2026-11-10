@@ -3,6 +3,7 @@
 Run from the repo root: python -m bench.plot_wiener
 """
 import csv
+import argparse
 import os
 from collections import defaultdict
 from statistics import median
@@ -15,8 +16,12 @@ from bench.bench import RESULTS
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input", default=os.path.join(RESULTS, "wiener.csv"))
+    parser.add_argument("--output", default=os.path.join(RESULTS, "wiener.png"))
+    args = parser.parse_args()
     data = defaultdict(list)
-    with open(os.path.join(RESULTS, "wiener.csv"), newline="") as f:
+    with open(args.input, newline="") as f:
         for row in csv.DictReader(f):
             data[int(row["d_bits"])].append(row)
     n_bits = int(next(iter(data.values()))[0]["n_bits"])
@@ -47,7 +52,7 @@ def main():
     fig.text(0.5, 0.02, "Sufficient bound: d < N^(1/4)/3 for balanced primes. "
              "Success beyond this bound is key-dependent.", ha="center", fontsize=8)
     fig.tight_layout(rect=(0, 0.05, 1, 1))
-    path = os.path.join(RESULTS, "wiener.png")
+    path = args.output
     fig.savefig(path, dpi=200)
     plt.close(fig)
     print(f"Saved {path}")

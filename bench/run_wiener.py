@@ -10,8 +10,8 @@ D_BITS = [100, 200, 300, 400, 450, 500, 505, 508, 509, 510,
           511, 512, 513, 514, 516, 520, 530, 540]
 
 
-def make_key(d_bits):
-    N, e, p, q, d = weak_wiener(BITS, d_bits)
+def make_key(d_bits, bits=BITS):
+    N, e, p, q, d = weak_wiener(bits, d_bits)
     return {"N": N, "e": e, "p": p, "q": q, "d": d,
             "log": {"d_bits_actual": d.bit_length(),
                     "below_wiener_bound": (3 * d) ** 4 < N}}

@@ -71,6 +71,24 @@ sage bench/scale_coppersmith.sage    # 3072-bit pilot; overwrites results/copper
 
 The source modules' Sage `load()` calls can print their standalone 512-bit demos; these are **not** benchmark observations.
 
+### Wiener and shared-prime GCD at 4096 bits
+
+Run three trials per setting, preserving the original 2048-bit results:
+
+```bash
+python -u -m bench.run_4096
+python -m bench.plot_wiener --input results/wiener_4096.csv --output results/wiener_4096.png
+python -m bench.plot_shared_prime --input results/shared_prime_4096.csv --output results/shared_prime_4096.png
+```
+
+The runner tests Wiener with 1020, 1022, 1024, 1026, and 1028-bit private
+exponents, and shared-prime GCD with four keys and 0, 1, or 2 disjoint shared
+pairs. It writes separate `wiener_4096.csv` and `shared_prime_4096.csv` files
+and refuses to replace them unless `--overwrite` is supplied. Use
+`--attack wiener` or `--attack shared_prime` to run only one experiment;
+`--trials` controls repetitions. Key generation and verification are outside
+the attack timer. See `report/wiener_shared_prime_4096.md` for recorded results.
+
 ### Coppersmith at 4096 bits
 
 A separate, non-destructive **4096-bit pilot** is available:

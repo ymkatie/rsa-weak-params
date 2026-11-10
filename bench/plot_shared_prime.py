@@ -1,5 +1,6 @@
 """Plot shared-prime recovery counts and attack-only runtime."""
 import csv
+import argparse
 import os
 from collections import defaultdict
 from statistics import median
@@ -12,8 +13,12 @@ from bench.bench import RESULTS
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input", default=os.path.join(RESULTS, "shared_prime.csv"))
+    parser.add_argument("--output", default=os.path.join(RESULTS, "shared_prime.png"))
+    args = parser.parse_args()
     data = defaultdict(list)
-    with open(os.path.join(RESULTS, "shared_prime.csv"), newline="") as stream:
+    with open(args.input, newline="") as stream:
         for row in csv.DictReader(stream):
             data[int(row["shared_pairs"])].append(row)
     if not data:
@@ -42,7 +47,7 @@ def main():
         ax.grid(axis="y", alpha=0.3)
         ax.spines[["top", "right"]].set_visible(False)
     fig.tight_layout()
-    path = os.path.join(RESULTS, "shared_prime.png")
+    path = args.output
     fig.savefig(path, dpi=200)
     plt.close(fig)
     print(f"Saved {path}")
